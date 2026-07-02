@@ -92,6 +92,9 @@ void VulkanRenderer::Draw()
 
 void VulkanRenderer::cleanup()
 {
+    // Wait until no actions being run on device
+    vkDeviceWaitIdle(mainDevice.logicalDevice);
+
     vkDestroySemaphore(mainDevice.logicalDevice, renderFinished, nullptr);
     vkDestroySemaphore(mainDevice.logicalDevice, imageAvailable, nullptr);
     vkDestroyCommandPool(mainDevice.logicalDevice, graphicsCommandPool, nullptr);
