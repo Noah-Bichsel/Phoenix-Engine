@@ -1,0 +1,11 @@
+# CLion / IDE
+.idea/
+cmake-build-*/
+
+# Build artifacts
+cmake-build-debug/
+cmake-build-release/
+*.o
+*.obj
+*.exe
+*.out
