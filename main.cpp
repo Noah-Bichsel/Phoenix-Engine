@@ -12,9 +12,11 @@ VulkanRenderer vulkanRenderer;
 
 void InitWindow(std::string wName = "Test Window", const int width = 800, const int hight = 600)
 {
-	// Initalize GLFW
+#if defined(__LINUX__)
 	// Since we are on linux
 	glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
+	// Initialize GLFW
 	glfwInit();
 
 	// Tell GLFW not to use OpenGL
