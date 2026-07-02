@@ -11,7 +11,7 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
         // needs to be in this order
         CreateInstance();
         setupDebugMessenger();
-        CreateSurface();
+        CreateSurface(); 
         GetPhysicalDevice();
         CreateLogicalDevice();
         CreateSwapChain();
@@ -21,6 +21,7 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
         CreateCommandPool();
         CreateCommandBuffers();
         RecordCommands();
+        CreateSyncronization();
     }
     catch (const std::runtime_error &e)
     {
@@ -34,11 +35,59 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
 void VulkanRenderer::Draw()
 {
     // -- GET NEXT IMAGE --
-    //vkAcquireNextImageKHR()
+    // Get index of next image to be drawn to, and signal semaphore when ready to be drawn to
+    uint32_t imageIndex = 0;
+    vkAcquireNextImageKHR(mainDevice.logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
-    // 1. Get next available image to draw to and set something to signal when we are finished with the image (a semaphore)
-    // 2. Submit command buffer to queue for execution, making sure it waits for the image to be signaled as available before drawing and signals when it as finished rendering
-    // 3. Present image to screen when it has signaled finished rendering
+    // -- SUBMIT COMMAND BUFFER TO RENDER --
+    // Queue Submission information
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    // Number of semaphores to wait on
+    submitInfo.waitSemaphoreCount = 1;
+    // List of semaphores to wait on
+    submitInfo.pWaitSemaphores = &imageAvailable;
+    VkPipelineStageFlags waitStages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    };
+    // Stages to check semaphores at
+    submitInfo.pWaitDstStageMask = waitStages;
+    // Number of command buffers to submit
+    submitInfo.commandBufferCount = 1;
+    // Command buffer to submit
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    // Number of semaphores to signal
+    submitInfo.signalSemaphoreCount = 1;
+    // Semaphores to signal when command buffer finishes
+    submitInfo.pSignalSemaphores = &renderFinished;
+
+    // Submit command buffer to the queue
+    VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to submit command buffer to Queue!");
+    }
+
+    // -- PRESENT RENDERED IMAGE TO SCREEN --
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    // Number of semaphores to wait on
+    presentInfo.waitSemaphoreCount = 1;
+    // semaphores to wait on
+    presentInfo.pWaitSemaphores = &renderFinished;
+    // Number of swapchians to present to
+    presentInfo.swapchainCount = 1;
+    // swapchians to present images to
+    presentInfo.pSwapchains = &swapChain;
+    // Index of images in swapchains to present
+    presentInfo.pImageIndices = &imageIndex;
+
+    // Present Image
+    result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to present Image!");
+    }
 }
 
 void VulkanRenderer::cleanup()
