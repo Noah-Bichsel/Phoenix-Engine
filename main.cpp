@@ -12,7 +12,7 @@ VulkanRenderer vulkanRenderer;
 
 void InitWindow(std::string wName = "Test Window", const int width = 800, const int hight = 600)
 {
-#if defined(__LINUX__)
+#if defined(__linux__)
 	// Since we are on linux
 	glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
