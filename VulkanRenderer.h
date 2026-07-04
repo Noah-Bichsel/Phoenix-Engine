@@ -22,6 +22,8 @@ public:
 private:
 	GLFWwindow* window;
 
+	int currentFrame = 0;
+
 	// Vulkan components
 	// - Main
 	VkInstance instance;
@@ -53,11 +55,12 @@ private:
 	VkExtent2D swapChainExtent;
 
 	// - Synchronisation
-	VkSemaphore imageAvailable;
-	VkSemaphore renderFinished;
+	std::vector<VkSemaphore> imageAvailable;
+	std::vector<VkSemaphore> renderFinished;
+	std::vector<VkFence> drawFences;
 
 	// Vulkan functions
-	// - Create funtions
+	// - Create functions
 	void CreateInstance();
 	void CreateLogicalDevice();
 	void setupDebugMessenger();
