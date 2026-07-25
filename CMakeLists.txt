@@ -38,7 +38,9 @@ add_executable(VulkanCourseApp____Clion
         Utilites.h
         VulkanRenderer.cpp
         VulkanRenderer.h
-        VulkanValidation.h)
+        VulkanValidation.h
+        Mesh.cpp
+        Mesh.h)
 
 target_link_libraries(VulkanCourseApp____Clion
         Vulkan::Vulkan

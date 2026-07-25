@@ -6,6 +6,12 @@
 #include <vector>
 #include <iostream>
 
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
 // Validation layers
 const std::vector<const char*> validationLayers =
 {

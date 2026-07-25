@@ -9,12 +9,15 @@
 #include <algorithm>
 #include <array>
 
+#include "Mesh.h"
 #include "Utilites.h"
 #include "VulkanValidation.h"
 
 class VulkanRenderer
 {
 public:
+	VulkanRenderer();
+
 	int init(GLFWwindow* newWindow);
 	void Draw();
 	void cleanup();
@@ -23,6 +26,9 @@ private:
 	GLFWwindow* window;
 
 	int currentFrame = 0;
+
+	// Scene Objects
+	Mesh firstMesh;
 
 	// Vulkan components
 	// - Main
@@ -63,7 +69,7 @@ private:
 	// - Create functions
 	void CreateInstance();
 	void CreateLogicalDevice();
-	void setupDebugMessenger();
+	void CreateDebugCallback();
 	void CreateSurface();
 	void CreateSwapChain();
 	void CreateRenderPass();

@@ -2,6 +2,10 @@
 #include <cstring>
 #include <limits>
 
+VulkanRenderer::VulkanRenderer()
+{
+}
+
 int VulkanRenderer::init(GLFWwindow *newWindow)
 {
     window = newWindow;
@@ -10,10 +14,19 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
     {
         // needs to be in this order
         CreateInstance();
-        setupDebugMessenger();
+        CreateDebugCallback();
         CreateSurface(); 
         GetPhysicalDevice();
         CreateLogicalDevice();
+
+        // Create a Mesh
+        std::vector<Vertex> meshVertices {
+            {{0.0, -0.4, 0.0}},
+            {{0.4, 0.4, 0.0}},
+            {{-0.4, 0.4, 0.0}},
+        };
+        firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice, &meshVertices);
+
         CreateSwapChain();
         CreateRenderPass();
         CreateGraphicsPipeline();
@@ -103,6 +116,8 @@ void VulkanRenderer::cleanup()
     // Wait until no actions being run on device
     vkDeviceWaitIdle(mainDevice.logicalDevice);
 
+    firstMesh.DestroyVertexBuffer();
+
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
     {
         vkDestroySemaphore(mainDevice.logicalDevice, renderFinished[i], nullptr);
@@ -155,13 +170,20 @@ void VulkanRenderer::CreateInstance()
     // Debug messenger creation info, needs to be passed to instance create info so that validation layers can use it to report issues during instance creation (and destruction)
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
-    // Set up validation layers that Instance will use
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-
-    // Set up debug messenger create info and add to instance create info
-    populateDebugMessengerCreateInfo(debugCreateInfo);
-    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &debugCreateInfo;
+    if (enableValidationLayers)
+    {
+        // Set up validation layers that Instance will use
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = &debugCreateInfo;
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+        createInfo.ppEnabledLayerNames = nullptr;
+        createInfo.pNext = nullptr;
+    }
 
     // Create list hold instance extensions
     std::vector<const char *> instanceExtentions = std::vector<const char *>();
@@ -190,10 +212,6 @@ void VulkanRenderer::CreateInstance()
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtentions.size());
     createInfo.ppEnabledExtensionNames = instanceExtentions.data();
-
-    // TODO: set up Validation layers that Instance will use (for debugging)
-    createInfo.enabledLayerCount = 0;
-    createInfo.ppEnabledLayerNames = nullptr;
 
     // Create the Vulkan Instance
     VkResult restult = vkCreateInstance(&createInfo, nullptr, &instance);
@@ -262,7 +280,7 @@ void VulkanRenderer::CreateLogicalDevice()
     vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
 }
 
-void VulkanRenderer::setupDebugMessenger()
+void VulkanRenderer::CreateDebugCallback()
 {
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
@@ -506,15 +524,41 @@ void VulkanRenderer::CreateGraphicsPipeline()
     // Graphics Pipeline creation info requires arry of shader stage creates
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo};
 
-    // -- VERTEX INPUT (TODO: Put in vertex descriptions when resources created) --
+    // How the data for a single vertex (including info such as position, color, texture coords, normals, etc) is as a whole
+    VkVertexInputBindingDescription bindingDescription = {};
+    // Can bind multiple streams of data, this defines which one
+    bindingDescription.binding = 0;
+    // Size of a single vertex object
+    bindingDescription.stride = sizeof(Vertex);
+    // How to move between data after each vertex
+    // VK_VERTEX_INPUT_RATE_VERTEX      :   Move onto the next vertex
+    // VK_VERTEX_INPUT_RATE_INSTANCE    :   Move to a vertex for the next instance
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    // How the data of an attribute is defined within a vertex
+    std::array<VkVertexInputAttributeDescription, 1> attributeDescriptions = {};
+
+    // Position Attribute
+    // Witch binding the data is at (should be same as above)
+    attributeDescriptions[0].binding = 0;
+    // Location in shader where data will be read from
+    attributeDescriptions[0].location = 0;
+    // Format the data will take (also helps define size of data)
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    // Where this attribute is defined in the data for a single vertex
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    // Color attributes
+
+    // -- VERTEX INPUT  --
     VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
     vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
+    vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
     // List of vertex Binding Descripts (data spacing/stride informaion)
-    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
-    vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     // List of vertex Attribute Desritions (data format and where to bind to/from)
-    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
+    vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     // -- INPUT ASSEMBLY --
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -832,8 +876,15 @@ void VulkanRenderer::RecordCommands()
                 // Bind Pipeline to be used in render pass
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+                    // Buffers to bind
+                    VkBuffer vertexBuffer[] = { firstMesh.GetVertexBuffer() };
+                    // Offsets into buffers being bound
+                    VkDeviceSize offsets[] = { 0 };
+                    // Command to bind vertex buffer before drawing with them
+                    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffer, offsets);
+
                 // Execute pipline
-                vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+                vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(firstMesh.GetVertexCount()), 1, 0, 0);
 
             // End Render Pass
             vkCmdEndRenderPass(commandBuffers[i]);
