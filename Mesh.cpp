@@ -31,7 +31,7 @@ Mesh::~Mesh()
 
 }
 
-VkBuffer Mesh::CreateVertexBuffer(std::vector<Vertex> *vertices)
+void Mesh::CreateVertexBuffer(std::vector<Vertex> *vertices)
 {
     // CREATE VERTEX BUFFER
     // Information to create a buffer (doesn't include assigning memory)
@@ -97,4 +97,6 @@ uint32_t Mesh::FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags 
             return i;
         }
     }
+
+    throw std::runtime_error("Failed to find a suitable memory type!");
 }
