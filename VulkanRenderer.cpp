@@ -18,20 +18,40 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
         CreateSurface(); 
         GetPhysicalDevice();
         CreateLogicalDevice();
-
-        // Create a Mesh
-        std::vector<Vertex> meshVertices {
-            {{0.0, -0.4, 0.0}},
-            {{0.4, 0.4, 0.0}},
-            {{-0.4, 0.4, 0.0}},
-        };
-        firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice, &meshVertices);
-
         CreateSwapChain();
         CreateRenderPass();
         CreateGraphicsPipeline();
         CreateFramebuffers();
         CreateCommandPool();
+
+        // Create a Mesh
+        // Vertex Data
+        std::vector<Vertex> meshVertices {
+            {{-0.1, -0.4, 0.0}, {1.0f, 0.0f, 0.0f}},     // 0
+            {{-0.1, 0.4, 0.0}, {0.0f, 1.0f, 0.0f}},      // 1
+            {{-0.9, 0.4, 0.0}, {0.0f, 0.0f, 1.0f}},      // 2
+            {{-0.9, -0.4, 0.0}, {1.0f, 1.0f, 1.0f}},     // 3
+        };
+
+        std::vector<Vertex> meshVertices2 {
+            {{0.9, -0.4, 0.0}, {1.0f, 0.0f, 0.0f}},     // 0
+            {{0.9, 0.4, 0.0}, {0.0f, 1.0f, 0.0f}},      // 1
+            {{0.1, 0.4, 0.0}, {0.0f, 0.0f, 1.0f}},      // 2
+            {{0.1, -0.4, 0.0}, {1.0f, 1.0f, 1.0f}},     // 3
+        };
+
+        // Index Data
+        std::vector<uint32_t> meshIndices {
+            0, 1, 2,
+            2, 3, 0
+        };
+
+        Mesh firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool, &meshVertices, &meshIndices);
+        Mesh secondMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool, &meshVertices2, &meshIndices);
+
+        meshList.push_back(firstMesh);
+        meshList.push_back(secondMesh);
+
         CreateCommandBuffers();
         RecordCommands();
         CreateSyncronization();
@@ -102,7 +122,7 @@ void VulkanRenderer::Draw()
 
     // Present Image
     result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
-    if (result != VK_SUCCESS)
+    if (result != VK_SUCCESS /* && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR */)
     {
         throw std::runtime_error("Failed to present Image!");
     }
@@ -116,7 +136,10 @@ void VulkanRenderer::cleanup()
     // Wait until no actions being run on device
     vkDeviceWaitIdle(mainDevice.logicalDevice);
 
-    firstMesh.DestroyVertexBuffer();
+    for (size_t i = 0; i < meshList.size(); i++)
+    {
+        meshList[i].DestroyBuffers();
+    }
 
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
     {
@@ -413,7 +436,7 @@ void VulkanRenderer::CreateRenderPass()
     // Format to use for attachment
     colorAttachment.format = swapChainImageFormat;
     // Number of samples to write for multisampling
-    colorAttachment.samples = VK_SAMPLE_COUNT_16_BIT;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // Originally: VK_SAMPLE_COUNT_16_BIT
     // Describes what to do with attachment before rendering
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     // Describes what to do with attachment after rendering
@@ -536,7 +559,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     // How the data of an attribute is defined within a vertex
-    std::array<VkVertexInputAttributeDescription, 1> attributeDescriptions = {};
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
 
     // Position Attribute
     // Witch binding the data is at (should be same as above)
@@ -549,6 +572,10 @@ void VulkanRenderer::CreateGraphicsPipeline()
     attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
     // Color attributes
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, col);
 
     // -- VERTEX INPUT  --
     VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
@@ -876,15 +903,21 @@ void VulkanRenderer::RecordCommands()
                 // Bind Pipeline to be used in render pass
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+                for (size_t j = 0; j < meshList.size(); j++)
+                {
                     // Buffers to bind
-                    VkBuffer vertexBuffer[] = { firstMesh.GetVertexBuffer() };
+                    VkBuffer vertexBuffer[] = { meshList[j].GetVertexBuffer() };
                     // Offsets into buffers being bound
                     VkDeviceSize offsets[] = { 0 };
                     // Command to bind vertex buffer before drawing with them
                     vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffer, offsets);
 
-                // Execute pipline
-                vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(firstMesh.GetVertexCount()), 1, 0, 0);
+                    // Bind mesh index buffer, with zero offset and using the uint32 type
+                    vkCmdBindIndexBuffer(commandBuffers[i], meshList[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+                    // Execute pipline
+                    vkCmdDrawIndexed(commandBuffers[i], meshList[j].GetIndexCount(), 1, 0, 0, 0);
+                }
 
             // End Render Pass
             vkCmdEndRenderPass(commandBuffers[i]);
