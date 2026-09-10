@@ -4,23 +4,28 @@
 
 Mesh::Mesh() {}
 
-Mesh::Mesh(VkPhysicalDevice new_physical_device, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex> *vertices, std::vector<uint32_t>* indices)
-: indexCount(indices->size()), vertexCount(vertices->size()), physicalDevice(new_physical_device), device(newDevice)
+Mesh::Mesh(VkPhysicalDevice new_physical_device, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex> *vertices, std::vector<uint32_t>* indices, int newTexId)
+: indexCount(indices->size()), vertexCount(vertices->size()), physicalDevice(new_physical_device), device(newDevice), texId(newTexId)
 {
     CreateVertexBuffer(transferQueue, transferCommandPool, vertices);
     CreateIndexBuffer(transferQueue, transferCommandPool, indices);
 
-    uboModel.model = glm::mat4(1.0f);
+    model.model = glm::mat4(1.0f);
 }
 
 void Mesh::SetModel(glm::mat4 newModel)
 {
-    uboModel.model = newModel;
+    model.model = newModel;
 }
 
-UboModel Mesh::GetModel()
+Model Mesh::GetModel()
 {
- return uboModel;
+ return model;
+}
+
+int Mesh::getTexId()
+{
+    return texId;
 }
 
 int Mesh::GetVertexCount()

@@ -9,3 +9,10 @@ cmake-build-release/
 *.obj
 *.exe
 *.out
+
+# ...but Wavefront model files are assets, not MSVC object files.
+!Models/*.obj
+
+# Vendored third-party sources. Too big to commit; CMake downloads assimp
+# automatically when external/assimp is missing (see CMakeLists.txt).
+external/

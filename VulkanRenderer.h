@@ -6,13 +6,20 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #include <stdexcept>
 #include <vector>
 #include <set>
 #include <algorithm>
 #include <array>
 
+#include "stb_image.h"
+
 #include "Mesh.h"
+#include "MeshModel.h"
 #include "Utilites.h"
 #include "VulkanValidation.h"
 
@@ -23,6 +30,7 @@ public:
 
 	int init(GLFWwindow* newWindow);
 
+	int CreateMeshModel(std::string modelFile);
 	void updateModel(int modelId, glm::mat4 newModel);
 
 	void Draw();
@@ -34,7 +42,7 @@ private:
 	int currentFrame = 0;
 
 	// Scene Objects
-	std::vector<Mesh> meshList;
+	std::vector<MeshModel> modelList;
 
 	// Scene Settings
 	// MVP -> model view projection
@@ -62,11 +70,22 @@ private:
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	std::vector<VkCommandBuffer> commandBuffers;
 
+	VkImage depthBufferImage;
+	VkDeviceMemory depthBufferImageMemory;
+	VkImageView depthBufferImageView;
+	VkFormat depthFormat;
+
+	VkSampler textureSampler;
+
 	// - Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout samplerSetLayout;
+	VkPushConstantRange pushConstantRange;
 
 	VkDescriptorPool descriptorPool;
+	VkDescriptorPool samplerDescriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> samplerDescriptorSets;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;
@@ -74,9 +93,14 @@ private:
 	std::vector<VkBuffer> modelDUniformBuffer;
 	std::vector<VkDeviceMemory> modelDUniformBufferMemory;
 
-	VkDeviceSize minUniformBufferOffset;
-	size_t modelUniformAlignment;
-	UboModel* modelTransferSpace;
+	//VkDeviceSize minUniformBufferOffset;
+	//size_t modelUniformAlignment;
+	//UboModel* modelTransferSpace;
+
+	// - Assets
+	std::vector<VkImage> textureImages;
+	std::vector<VkDeviceMemory> textureImageMemory;
+	std::vector<VkImageView> textureImageViews;
 
 	// - Pipeline
 	VkPipeline graphicsPipeline;
@@ -103,12 +127,15 @@ private:
 	void CreateSurface();
 	void CreateSwapChain();
 	void CreateRenderPass();
-	void createDescriptorSetLayout();
+	void CreateDescriptorSetLayout();
+	void CreatePushConstantRange();
 	void CreateGraphicsPipeline();
+	void CreateDepthBufferImage();
 	void CreateFramebuffers();
 	void CreateCommandPool();
 	void CreateCommandBuffers();
 	void CreateSyncronization();
+	void CreateTextureSampler();
 
 	void CreateUniformBuffer();
 	void CreateDescriptorPool();
@@ -117,32 +144,41 @@ private:
 	void UpdateUniformBuffers(uint32_t imageIndex);
 
 	// - Record Functions
-	void RecordCommands();
+	void RecordCommands(uint32_t currentImage);
 
 	// - Get functions
 	void GetPhysicalDevice();
 
-	// - Allocate Funtions
+	// - Allocate Functions
 	void AllocateDynamicBufferTransferSpace();
 	
 	// - Support functions
-	// -- Checker Funtions
+	// -- Checker Functions
 	bool CheckInstanceExtentionSupport(std::vector<const char*>* checkExtentions);
 	bool CheckDeviceExtentionSupport(VkPhysicalDevice device);
 	bool checkDeviceSuitable(VkPhysicalDevice device);
 	bool checkValidationLayerSupport();
 
-	// -- Getter Funtions
+	// -- Getter Functions
 	QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device);
 	SwapChainDetails GetSwapChainDetails(VkPhysicalDevice device);
 
-	// -- Choose Funtions
+	// -- Choose Functions
 	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkFormat ChooseSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags featuresFlags);
 
-	// -- Create Funtions
+	// -- Create Functions
+	VkImage CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usaFlags, VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory);
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+	int CreateTextureImage(std::string filename);
+	int CreateTexture(std::string filename);
+	int CreateTextureDescriptor(VkImageView textureImage);
+
+	// -- Loader Functions
+	stbi_uc* LoadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize);
 };
 
