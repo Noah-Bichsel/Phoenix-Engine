@@ -32,6 +32,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
+# Header-only, but declare it: older LunarG SDKs bundled glm under their include
+# dir and 1.4.x no longer does, so relying on the SDK to supply it silently
+# breaks on an SDK upgrade.
+find_package(glm REQUIRED)
 
 # --- assimp ---------------------------------------------------------------
 # Built from source as part of this project, so Windows and Linux behave
@@ -105,24 +109,25 @@ add_executable(VulkanCourseApp____Clion
         Mesh.h
         stb_image.h
         MeshModel.cpp
-        MeshModel.h)
+        MeshModel.h
+        main.cpp)
 
 target_link_libraries(VulkanCourseApp____Clion
         Vulkan::Vulkan
         glfw
+        glm::glm
         assimp::assimp)
 
-# Assets are opened by relative path at runtime ("Shaders/...", "Textures/..."),
-# so they have to sit next to the executable.
-add_custom_command(TARGET VulkanCourseApp____Clion POST_BUILD
+# Assets are opened by relative path at runtime ("Shaders/...", "Textures/...", "Models/..."),
+# so they have to sit next to the executable. This is a custom target rather than a POST_BUILD
+# step so it runs on every build - POST_BUILD only fires when the exe relinks, so editing just a
+# shader would leave a stale .spv in the build dir.
+add_custom_target(copy_assets ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Shaders $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Shaders)
-
-add_custom_command(TARGET VulkanCourseApp____Clion POST_BUILD
+        ${CMAKE_SOURCE_DIR}/Shaders $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Shaders
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Textures $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Textures)
-
-# Same for models fed to assimp.
-add_custom_command(TARGET VulkanCourseApp____Clion POST_BUILD
+        ${CMAKE_SOURCE_DIR}/Textures $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Textures
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Models $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Models)
+
+add_dependencies(VulkanCourseApp____Clion copy_assets)
