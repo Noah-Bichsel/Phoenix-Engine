@@ -98,7 +98,7 @@ void VulkanRenderer::Draw()
     // Number of semaphores to signal
     submitInfo.signalSemaphoreCount = 1;
     // Semaphores to signal when command buffer finishes
-    submitInfo.pSignalSemaphores = &renderFinished[currentFrame];
+    submitInfo.pSignalSemaphores = &renderFinished[imageIndex];
 
     // Submit command buffer to the queue
     VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, drawFences[currentFrame]);
@@ -113,17 +113,17 @@ void VulkanRenderer::Draw()
     // Number of semaphores to wait on
     presentInfo.waitSemaphoreCount = 1;
     // semaphores to wait on
-    presentInfo.pWaitSemaphores = &renderFinished[currentFrame];
-    // Number of swapchians to present to
+    presentInfo.pWaitSemaphores = &renderFinished[imageIndex];
+    // Number of swap chians to present to
     presentInfo.swapchainCount = 1;
-    // swapchians to present images to
+    // swap chians to present images to
     presentInfo.pSwapchains = &swapChain;
-    // Index of images in swapchains to present
+    // Index of images in swap chains to present
     presentInfo.pImageIndices = &imageIndex;
 
     // Present Image
     result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR ) // REDO TO /* && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR */
+    if (result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to present Image!");
     }
@@ -191,9 +191,10 @@ void VulkanRenderer::cleanup()
         //vkFreeMemory(mainDevice.logicalDevice, modelDUniformBufferMemory[i], nullptr);
     }
 
+    for (size_t i = 0; i < swapChainImages.size(); i++)
+        vkDestroySemaphore(mainDevice.logicalDevice, renderFinished[i], nullptr);
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
     {
-        vkDestroySemaphore(mainDevice.logicalDevice, renderFinished[i], nullptr);
         vkDestroySemaphore(mainDevice.logicalDevice, imageAvailable[i], nullptr);
         vkDestroyFence(mainDevice.logicalDevice, drawFences[i], nullptr);
     }
@@ -1190,8 +1191,8 @@ void VulkanRenderer::CreateCommandBuffers()
 void VulkanRenderer::CreateSyncronization()
 {
     imageAvailable.resize(MAX_FRAME_DRAWS);
-    renderFinished.resize(MAX_FRAME_DRAWS);
     drawFences.resize(MAX_FRAME_DRAWS);
+    renderFinished.resize(swapChainImages.size());
 
     // Semaphore Creation information
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
@@ -1205,11 +1206,15 @@ void VulkanRenderer::CreateSyncronization()
     for (size_t i  = 0; i < MAX_FRAME_DRAWS; i++)
     {
         if (vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &imageAvailable[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinished[i]) != VK_SUCCESS ||
             vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &drawFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create semaphore and/or Fence!");
         }
+    }
+    for (size_t i = 0; i < swapChainImages.size(); i++)
+    {
+        if (vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinished[i]) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create semaphore and/or Fence!");
     }
 }
 
