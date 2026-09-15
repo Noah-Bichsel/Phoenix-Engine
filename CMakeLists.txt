@@ -24,7 +24,7 @@ if(NOT DEFINED ENV{VULKAN_SDK} AND EXISTS "C:/VulkanSDK")
 endif()
 # -------------------------------------------------------------------------
 
-project(VulkanCourseApp____Clion)
+project(PhoenixEngine)
 
 # assimp 6 requires C++17.
 set(CMAKE_CXX_STANDARD 17)
@@ -99,7 +99,7 @@ FetchContent_MakeAvailable(assimp)
 
 include_directories(.)
 
-add_executable(VulkanCourseApp____Clion
+add_executable(PhoenixEngine
         main.cpp
         Utilites.h
         VulkanRenderer.cpp
@@ -112,7 +112,7 @@ add_executable(VulkanCourseApp____Clion
         MeshModel.h
         main.cpp)
 
-target_link_libraries(VulkanCourseApp____Clion
+target_link_libraries(PhoenixEngine
         Vulkan::Vulkan
         glfw
         glm::glm
@@ -124,10 +124,10 @@ target_link_libraries(VulkanCourseApp____Clion
 # shader would leave a stale .spv in the build dir.
 add_custom_target(copy_assets ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Shaders $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Shaders
+        ${CMAKE_SOURCE_DIR}/Shaders $<TARGET_FILE_DIR:PhoenixEngine>/Shaders
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Textures $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Textures
+        ${CMAKE_SOURCE_DIR}/Textures $<TARGET_FILE_DIR:PhoenixEngine>/Textures
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Models $<TARGET_FILE_DIR:VulkanCourseApp____Clion>/Models)
+        ${CMAKE_SOURCE_DIR}/Models $<TARGET_FILE_DIR:PhoenixEngine>/Models)
 
-add_dependencies(VulkanCourseApp____Clion copy_assets)
+add_dependencies(PhoenixEngine copy_assets)
