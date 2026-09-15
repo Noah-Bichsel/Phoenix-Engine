@@ -1,0 +1,9 @@
+{
+  "$comment": "Manifest mode: whichever vcpkg toolchain CMake is given (CLion's bundled one, C:/vcpkg, a CI checkout) installs these into <build-dir>/vcpkg_installed at configure time. Vulkan itself comes from the LunarG SDK via FindVulkan, and assimp is built by FetchContent, so neither belongs here.",
+  "name": "vulkan-course-app",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "glfw3",
+    "glm"
+  ]
+}

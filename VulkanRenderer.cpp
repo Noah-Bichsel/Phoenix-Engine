@@ -12,6 +12,12 @@ int VulkanRenderer::init(GLFWwindow *newWindow)
 {
     window = newWindow;
 
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* w, int, int) {
+        auto renderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(w));
+        renderer->framebufferResized = true;
+    });
+
     try
     {
         // needs to be in this order
@@ -73,7 +79,15 @@ void VulkanRenderer::Draw()
 
     // Get index of next image to be drawn to, and signal semaphore when ready to be drawn to
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(mainDevice.logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result =vkAcquireNextImageKHR(mainDevice.logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        RecreateSwapChain();
+        return;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("Failed to acquire Swap Chain Image!");
+    }
 
     RecordCommands(imageIndex);
     UpdateUniformBuffers(imageIndex);
@@ -101,7 +115,7 @@ void VulkanRenderer::Draw()
     submitInfo.pSignalSemaphores = &renderFinished[imageIndex];
 
     // Submit command buffer to the queue
-    VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, drawFences[currentFrame]);
+    result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, drawFences[currentFrame]);
     if (result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to submit command buffer to Queue!");
@@ -122,9 +136,11 @@ void VulkanRenderer::Draw()
     presentInfo.pImageIndices = &imageIndex;
 
     // Present Image
-    result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
-    if (result != VK_SUCCESS)
-    {
+    result = vkQueuePresentKHR(presentationQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+        framebufferResized = false;
+        RecreateSwapChain();
+    } else if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to present Image!");
     }
 
@@ -479,7 +495,7 @@ void VulkanRenderer::CreateSwapChain()
         swapChainImage.image = image;
         swapChainImage.imageView = CreateImageView(image, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        // Adds to swapchain image list
+        // Adds to swap chain image list
         swapChainImages.push_back(swapChainImage);
     }
 }
@@ -830,50 +846,27 @@ void VulkanRenderer::CreateGraphicsPipeline()
     // -- VIEWPORT & SCISSOR --
     // for things like split screen
 
-    //Create a viewport info struct
-    VkViewport viewPort = {};
-    // x start coordinate
-    viewPort.x = 0.0f;
-    // y start coordinate
-    viewPort.y = 0.0f;
-    // width of viewport
-    viewPort.width = (float) swapChainExtent.width;
-    // height of viewport
-    viewPort.height = (float) swapChainExtent.height;
-    // min framebuffer depth
-    viewPort.minDepth = 0.0f;
-    // max framebuffer depth
-    viewPort.maxDepth = 1.0f;
-
-    // Create a scissor info struct
-    VkRect2D scissor = {};
-    // Offset to use reagon from
-    scissor.offset = {0, 0};
-    // Exten to describe reagon to use, starting at offset
-    scissor.extent = swapChainExtent;
-
     VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
     viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportStateCreateInfo.viewportCount = 1;
-    viewportStateCreateInfo.pViewports = &viewPort;
+    viewportStateCreateInfo.pViewports = nullptr;
     viewportStateCreateInfo.scissorCount = 1;
-    viewportStateCreateInfo.pScissors = &scissor;
+    viewportStateCreateInfo.pScissors = nullptr;
 
-    /*
     // -- DYNAMIC STATES --
     // Dynamic states to enable
-    std::vector<VkDynamicState> dynamicStateEnable;
-    // Dynmamic Viewport : Can resisze in command buffer with vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    dynamicStateEnable.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-    // Dynamic Scissor : Can resisze in command buffer with vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-    dynamicStateEnable.push_back(VK_DYNAMIC_STATE_SCISSOR);
+    std::vector<VkDynamicState> dynamicStates = {
+        // Dynamic Viewport : Can resize in command buffer with vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        VK_DYNAMIC_STATE_VIEWPORT,
+        // Dynamic Scissor : Can resize in command buffer with vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        VK_DYNAMIC_STATE_SCISSOR
+    };
 
     // Dynamic State creation info
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnable.size());
-    dynamicStateCreateInfo.pDynamicStates = dynamicStateEnable.data();
-    */
+    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     // -- RASTERIZER --
     VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = {};
@@ -983,7 +976,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
     pipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
     pipelineCreateInfo.pInputAssemblyState = &inputAssembly;
     pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-    pipelineCreateInfo.pDynamicState = nullptr;
+    pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
     pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
     pipelineCreateInfo.pMultisampleState = &multisamplingCreateInfo;
     pipelineCreateInfo.pColorBlendState = &colorBlendingCreateInfo;
@@ -1330,28 +1323,7 @@ void VulkanRenderer::CreateDescriptorPool()
         throw std::runtime_error("Failed to create descriptor pool!");
 
     // CREATE INPUT ATTACHMENT DESCRIPTOR POOL
-    // Color Attachment Pool Size
-    VkDescriptorPoolSize colorInputPoolSize = {};
-    colorInputPoolSize.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    colorInputPoolSize.descriptorCount = static_cast<uint32_t>(colorBufferImageView.size());
-
-    // Depth Attachment Pool Size
-    VkDescriptorPoolSize depthInputPoolSize = {};
-    depthInputPoolSize.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    depthInputPoolSize.descriptorCount = static_cast<uint32_t>(depthBufferImageView.size());
-
-    std::vector<VkDescriptorPoolSize> inputPoolSizes = { colorInputPoolSize, depthInputPoolSize };
-
-    // Create input attachment pool
-    VkDescriptorPoolCreateInfo inputPoolCreateInfo = {};
-    inputPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    inputPoolCreateInfo.maxSets = swapChainImages.size();
-    inputPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(inputPoolSizes.size());
-    inputPoolCreateInfo.pPoolSizes = inputPoolSizes.data();
-
-    result = vkCreateDescriptorPool(mainDevice.logicalDevice, &inputPoolCreateInfo, nullptr, &inputDescriptorPool);
-    if (result != VK_SUCCESS)
-        throw std::runtime_error("Failed to create descriptor pool!");
+    CreateInputDescriptorPool();
 }
 
 void VulkanRenderer::CreateDescriptorSets()
@@ -1432,6 +1404,32 @@ void VulkanRenderer::CreateDescriptorSets()
 
 }
 
+void VulkanRenderer::CreateInputDescriptorPool()
+{
+    // Color Attachment Pool Size
+    VkDescriptorPoolSize colorInputPoolSize = {};
+    colorInputPoolSize.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    colorInputPoolSize.descriptorCount = static_cast<uint32_t>(colorBufferImageView.size());
+
+    // Depth Attachment Pool Size
+    VkDescriptorPoolSize depthInputPoolSize = {};
+    depthInputPoolSize.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    depthInputPoolSize.descriptorCount = static_cast<uint32_t>(depthBufferImageView.size());
+
+    std::vector<VkDescriptorPoolSize> inputPoolSizes = { colorInputPoolSize, depthInputPoolSize };
+
+    // Create input attachment pool
+    VkDescriptorPoolCreateInfo inputPoolCreateInfo = {};
+    inputPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    inputPoolCreateInfo.maxSets = swapChainImages.size();
+    inputPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(inputPoolSizes.size());
+    inputPoolCreateInfo.pPoolSizes = inputPoolSizes.data();
+
+    VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice, &inputPoolCreateInfo, nullptr, &inputDescriptorPool);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to create descriptor pool!");
+}
+
 void VulkanRenderer::CreateInputDescriptorSets()
 {
     // Resize array to hold descriptor set for each swap chain image
@@ -1496,6 +1494,70 @@ void VulkanRenderer::CreateInputDescriptorSets()
 
 }
 
+void VulkanRenderer::RecreateSwapChain()
+{
+    // Handle minimisation
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    // Nothing should be running when destroying things
+    vkDeviceWaitIdle(mainDevice.logicalDevice);
+
+    CleanUpSwapChain();
+
+    // Rebuild them, same order as in init()
+    CreateSwapChain();
+    CreateDepthBufferImage();
+    CreateColorBufferImage();
+    CreateFramebuffers();
+    CreateInputDescriptorPool();
+    CreateInputDescriptorSets();
+    CreateCommandBuffers();
+
+    uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f);
+    uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 110.0f), glm::vec3(0.0f, 0.0f, .0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    uboViewProjection.projection[1][1] *= -1.0f;
+}
+
+void VulkanRenderer::CleanUpSwapChain()
+{
+    for (auto framebuffer : swapChainFramebuffers)
+        vkDestroyFramebuffer(mainDevice.logicalDevice, framebuffer, nullptr);
+
+    vkFreeCommandBuffers(mainDevice.logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+    // depth + colour attachments
+    for (size_t i = 0; i < depthBufferImage.size(); i++) {
+        vkDestroyImageView(mainDevice.logicalDevice, depthBufferImageView[i], nullptr);
+        vkDestroyImage(mainDevice.logicalDevice, depthBufferImage[i], nullptr);
+        vkFreeMemory(mainDevice.logicalDevice, depthBufferImageMemory[i], nullptr);
+    }
+
+    colorBufferImage.clear();
+    colorBufferImageMemory.clear();
+    colorBufferImageView.clear();
+
+    for (auto image : swapChainImages)
+        vkDestroyImageView(mainDevice.logicalDevice, image.imageView, nullptr);
+
+    vkDestroySwapchainKHR(mainDevice.logicalDevice, swapChain, nullptr);
+
+    swapChainImages.clear();
+    swapChainFramebuffers.clear();
+    depthBufferImage.clear();
+    depthBufferImageMemory.clear();
+    depthBufferImageView.clear();
+
+    vkDestroyDescriptorPool(mainDevice.logicalDevice, inputDescriptorPool, nullptr);
+    inputDescriptorSets.clear();
+}
+
 void VulkanRenderer::UpdateUniformBuffers(uint32_t imageIndex)
 {
     // Copy VP data
@@ -1555,6 +1617,30 @@ void VulkanRenderer::RecordCommands(uint32_t currentImage)
 
             // Bind Pipeline to be used in render pass
             vkCmdBindPipeline(commandBuffers[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+            VkViewport viewport = {};
+            // x start coordinate
+            viewport.x = 0.0f;
+            // y start coordinate
+            viewport.y = 0.0f;
+            // width of viewport
+            viewport.width = (float) swapChainExtent.width;
+            // height of viewport
+            viewport.height = (float) swapChainExtent.height;
+            // min framebuffer depth
+            viewport.minDepth = 0.0f;
+            // max framebuffer depth
+            viewport.maxDepth = 1.0f;
+
+            vkCmdSetViewport(commandBuffers[currentImage], 0, 1, &viewport);
+
+            VkRect2D scissor = {};
+            // Offset to use reagon from
+            scissor.offset = {0, 0};
+            // Exten to describe reagon to use, starting at offset
+            scissor.extent = swapChainExtent;
+
+            vkCmdSetScissor(commandBuffers[currentImage], 0, 1, &scissor);
 
             for (size_t j = 0; j < modelList.size(); j++)
             {

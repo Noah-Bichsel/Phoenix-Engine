@@ -52,6 +52,8 @@ private:
 		glm::mat4 view;
 	} uboViewProjection;
 
+	bool framebufferResized = false;
+
 	// Vulkan components
 	// - Main
 	VkInstance instance;
@@ -152,7 +154,11 @@ private:
 	void CreateUniformBuffer();
 	void CreateDescriptorPool();
 	void CreateDescriptorSets();
+	void CreateInputDescriptorPool();
 	void CreateInputDescriptorSets();
+
+	void RecreateSwapChain();
+	void CleanUpSwapChain();
 
 	void UpdateUniformBuffers(uint32_t imageIndex);
 

@@ -25,7 +25,7 @@ void InitWindow(std::string wName = "Test Window", const int width = 800, const 
 	// Tell GLFW not to use OpenGL
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	// Tell GLFW to not allow the window to be resized
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	//glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	// Create the window
 	window = glfwCreateWindow(width, hight, wName.c_str(), nullptr, nullptr);
