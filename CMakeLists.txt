@@ -26,8 +26,9 @@ endif()
 
 project(PhoenixEngine)
 
-# assimp 6 requires C++17.
-set(CMAKE_CXX_STANDARD 17)
+# C++20 for our own code. assimp 6 needs at least C++17, and builds fine at 20,
+# so it inherits this too rather than being pinned separately.
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Vulkan REQUIRED)
@@ -97,26 +98,13 @@ FetchContent_Declare(assimp
 FetchContent_MakeAvailable(assimp)
 # -------------------------------------------------------------------------
 
-include_directories(.)
+add_subdirectory(modules/core)
+add_subdirectory(modules/renderer)
+add_subdirectory(modules/application)
+add_subdirectory(modules/engine)
 
-add_executable(PhoenixEngine
-        main.cpp
-        Utilites.h
-        VulkanRenderer.cpp
-        VulkanRenderer.h
-        VulkanValidation.h
-        Mesh.cpp
-        Mesh.h
-        stb_image.h
-        MeshModel.cpp
-        MeshModel.h
-        main.cpp)
-
-target_link_libraries(PhoenixEngine
-        Vulkan::Vulkan
-        glfw
-        glm::glm
-        assimp::assimp)
+# Defines the PhoenixEngine executable.
+add_subdirectory(editor)
 
 # Assets are opened by relative path at runtime ("Shaders/...", "Textures/...", "Models/..."),
 # so they have to sit next to the executable. This is a custom target rather than a POST_BUILD

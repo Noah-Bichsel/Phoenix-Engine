@@ -1,4 +1,4 @@
-#include "MeshModel.h"
+#include "../include/renderer/MeshModel.h"
 MeshModel::MeshModel() {}
 
 MeshModel::MeshModel(std::vector<Mesh> newMeshList) : meshList(newMeshList), model(glm::mat4(1.0f))
