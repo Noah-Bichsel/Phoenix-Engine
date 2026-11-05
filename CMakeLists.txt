@@ -37,6 +37,9 @@ find_package(glfw3 REQUIRED)
 # dir and 1.4.x no longer does, so relying on the SDK to supply it silently
 # breaks on an SDK upgrade.
 find_package(glm REQUIRED)
+# Header-only ECS. Ships a CMake config package, so consumers just link
+# EnTT::EnTT and get the include directory and C++17 requirement with it.
+find_package(EnTT CONFIG REQUIRED)
 
 # --- assimp ---------------------------------------------------------------
 # Built from source as part of this project, so Windows and Linux behave

@@ -25,6 +25,9 @@ target_link_libraries(engine
         PUBLIC
         application
         renderer
+        # PUBLIC because engine headers (a Scene holding an entt::registry) will
+        # expose EnTT types; drop to PRIVATE if it stays inside the .cpp files.
+        EnTT::EnTT
         PRIVATE
         core
         glfw)

@@ -3,6 +3,7 @@
   "name": "vulkan-course-app",
   "version-string": "0.1.0",
   "dependencies": [
+    "entt",
     "glfw3",
     "glm"
   ]
