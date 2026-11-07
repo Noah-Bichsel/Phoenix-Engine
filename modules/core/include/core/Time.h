@@ -2,24 +2,27 @@
 
 #include <chrono>
 
-class Time
+namespace Phoenix
 {
-public:
-    using clock = std::chrono::steady_clock;
-
-    static float DeltaTime()
+    class Time
     {
-        return deltaTime;
-    }
+    public:
+        using clock = std::chrono::steady_clock;
 
-    static void Update()
-    {
-        const clock::time_point now = clock::now();
-        deltaTime = std::chrono::duration<float>(now - lastTime).count();
-        lastTime = now;
-    }
+        static float DeltaTime()
+        {
+            return deltaTime;
+        }
 
-private:
-    inline static float deltaTime = 0.0f;
-    inline static clock::time_point lastTime = clock::now();
-};
+        static void Update()
+        {
+            const clock::time_point now = clock::now();
+            deltaTime = std::chrono::duration<float>(now - lastTime).count();
+            lastTime = now;
+        }
+
+    private:
+        inline static float deltaTime = 0.0f;
+        inline static clock::time_point lastTime = clock::now();
+    };
+}

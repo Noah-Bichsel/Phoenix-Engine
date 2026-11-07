@@ -13,6 +13,7 @@ add_executable(PhoenixEngine
 target_link_libraries(PhoenixEngine
         PRIVATE
         core
+        ecs
         application
         renderer
         engine

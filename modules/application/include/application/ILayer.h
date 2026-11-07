@@ -1,12 +1,15 @@
 #pragma once
 
-class ILayer
+namespace Phoenix
 {
-public:
-    ILayer() = default;
-    virtual ~ILayer() = default;
+    class ILayer
+    {
+    public:
+        ILayer() = default;
+        virtual ~ILayer() = default;
 
-    virtual void OnAttach() = 0;
-    virtual void OnDetach() = 0;
-    virtual void OnUpdate() = 0;
-};
+        virtual void OnAttach() = 0;
+        virtual void OnDetach() = 0;
+        virtual void OnUpdate() = 0;
+    };
+}

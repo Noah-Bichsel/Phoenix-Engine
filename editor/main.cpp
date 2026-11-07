@@ -2,6 +2,8 @@
 
 #include "src/EditorApp.h"
 
+using namespace Phoenix;
+
 int main()
 {
 	Window::Desc desc;

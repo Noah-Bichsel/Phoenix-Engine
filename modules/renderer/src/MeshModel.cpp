@@ -1,4 +1,7 @@
 #include "../include/renderer/MeshModel.h"
+
+using namespace Phoenix;
+
 MeshModel::MeshModel() {}
 
 MeshModel::MeshModel(std::vector<Mesh> newMeshList) : meshList(newMeshList), model(glm::mat4(1.0f))

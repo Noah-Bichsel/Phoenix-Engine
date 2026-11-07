@@ -3,33 +3,31 @@
 #include <string>
 #include <vector>
 #include <entt/entity/entity.hpp>
+#include <core/math/Vector.h>
 
-struct Name
+namespace Phoenix
 {
-    std::string name;
-};
+    struct NameComponent
+    {
+        std::string m_name;
+    };
 
-struct Vector2
-{
-    float x{}, y{};
-};
+    struct TransformComponent
+    {
+        Vector3 m_position = Vector3::Zero();
+        Vector3 m_rotation = Vector3::Zero();
+        Vector3 m_scale = Vector3(1.0f, 1.0f, 1.0f);
 
-struct Vector3
-{
-    float x{}, y{}, z{};
-};
+        entt::entity parent {entt::null};
+        std::vector<entt::entity> children;
+    };
 
-struct Transform
-{
-    Vector3 position;
-    Vector3 rotation;
-    Vector3 scale;
+    struct MeshComponent
+    {
+        std::string m_path{};
+        int m_id = -1;
 
-    entt::entity parent {entt::null};
-    std::vector<entt::entity> children;
-};
-
-struct Mesh
-{
-
-};
+        MeshComponent() = default;
+        MeshComponent(const std::string& path) : m_path(path) {}
+    };
+}

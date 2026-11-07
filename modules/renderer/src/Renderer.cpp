@@ -1,6 +1,8 @@
 #include <renderer/Renderer.h>
 #include "vulkan/vk_renderer.h"
 
+using namespace Phoenix;
+
 std::unique_ptr<Renderer> Renderer::Create(GLFWwindow* window, Backend backend)
 {
     switch (backend)

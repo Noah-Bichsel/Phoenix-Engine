@@ -2,6 +2,8 @@
 #include "../Behaviour.h"
 #include "../Scene.h"
 
+using namespace Phoenix;
+
 template<typename T>
 T *Object::GetComponent() const
 {

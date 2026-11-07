@@ -7,6 +7,8 @@
 
 #include <glm/glm.hpp>
 
+namespace Phoenix
+{
 const int MAX_FRAME_DRAWS = 2;
 const int MAX_OBJECTS = 20;
 
@@ -316,4 +318,5 @@ static void TransitionImageLayout(VkDevice device, VkQueue queue, VkCommandPool 
     );
 
     EndAndSubmitCommandBuffer(device, commandPool, queue, commandBuffer);
+}
 }

@@ -7,6 +7,8 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 
+using namespace Phoenix;
+
 vk_renderer::vk_renderer()
 {
 }

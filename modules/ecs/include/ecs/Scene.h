@@ -4,20 +4,23 @@
 
 #include <entt/entt.hpp>
 
-#include "Object.h"
-
-class Scene
+namespace Phoenix
 {
-public:
-    Object Create(std::string name);
+    class Object;
 
-    void Destroy(Object object);
-
-    entt::registry& GetRegistry()
+    class Scene
     {
-        return registry;
-    }
+    public:
+        Object CreateObject(const std::string& name);
 
-private:
-    entt::registry registry;
-};
+        void Destroy(Object object);
+
+        entt::registry& GetRegistry()
+        {
+            return m_registry;
+        }
+
+    private:
+        entt::registry m_registry;
+    };
+}

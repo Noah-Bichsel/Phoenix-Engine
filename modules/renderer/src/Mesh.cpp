@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+using namespace Phoenix;
+
 Mesh::Mesh() {}
 
 Mesh::Mesh(VkPhysicalDevice new_physical_device, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex> *vertices, std::vector<uint32_t>* indices, int newTexId)

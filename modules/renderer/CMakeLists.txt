@@ -6,7 +6,7 @@
 # CMakeLists.txt, so this must be added after those are found/fetched.
 
 add_library(renderer STATIC
-        include/renderer/renderer.h
+        include/renderer/Renderer.h
         src/vulkan/vk_renderer.cpp
         src/vulkan/vk_renderer.h
         src/vulkan/Utilites.h
@@ -15,7 +15,7 @@ add_library(renderer STATIC
         include/renderer/Mesh.h
         src/MeshModel.cpp
         include/renderer/MeshModel.h
-        src/renderer.cpp)
+        src/Renderer.cpp)
 
 add_library(Phoenix::renderer ALIAS renderer)
 

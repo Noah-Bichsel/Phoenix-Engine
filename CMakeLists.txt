@@ -39,14 +39,26 @@ find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 # Header-only ECS. Ships a CMake config package, so consumers just link
 # EnTT::EnTT and get the include directory and C++17 requirement with it.
-find_package(EnTT CONFIG REQUIRED)
+#
+# vcpkg supplies it on Windows; most Linux distros (Arch included) don't package
+# it, so fall back to fetching the release when no installed copy is found.
+include(FetchContent)
+
+find_package(EnTT CONFIG QUIET)
+if(NOT EnTT_FOUND)
+    message(STATUS "EnTT not installed; fetching v3.15.0")
+    FetchContent_Declare(EnTT
+            URL https://github.com/skypjack/entt/archive/refs/tags/v3.15.0.zip
+            URL_HASH SHA256=bd05397459b0abc9a555d2346946b88e26630f413299191e06d03f2af707d5ce
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(EnTT)
+endif()
 
 # --- assimp ---------------------------------------------------------------
 # Built from source as part of this project, so Windows and Linux behave
 # identically and no prebuilt binaries / import libs have to be managed by
 # hand. Prefer the vendored copy in external/assimp (gitignored); if it isn't
 # there, FetchContent downloads the same v6.0.5 release archive.
-include(FetchContent)
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/external/assimp/CMakeLists.txt")
     set(FETCHCONTENT_SOURCE_DIR_ASSIMP "${CMAKE_SOURCE_DIR}/external/assimp"
@@ -103,6 +115,7 @@ FetchContent_MakeAvailable(assimp)
 
 add_subdirectory(modules/core)
 add_subdirectory(modules/renderer)
+add_subdirectory(modules/ecs)
 add_subdirectory(modules/application)
 add_subdirectory(modules/engine)
 

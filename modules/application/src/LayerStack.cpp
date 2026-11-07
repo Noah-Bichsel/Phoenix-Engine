@@ -1,5 +1,7 @@
 #include "../include/application/LayerStack.h"
 
+using namespace Phoenix;
+
 void LayerStack::PushLayer(std::unique_ptr<ILayer> layer)
 {
     if (!layer)

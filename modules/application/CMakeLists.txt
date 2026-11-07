@@ -34,6 +34,7 @@ target_include_directories(application
 target_link_libraries(application
         PUBLIC
         renderer
+        ecs
         PRIVATE
         glfw
         core)

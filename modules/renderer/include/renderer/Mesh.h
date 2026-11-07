@@ -7,48 +7,51 @@
 
 #include "Utilites.h"
 
-struct Model
+namespace Phoenix
 {
-    glm::mat4 model;
-};
+    struct Model
+    {
+        glm::mat4 model;
+    };
 
-class Mesh
-{
-public:
-    Mesh();
-    Mesh(VkPhysicalDevice new_physical_device, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool,  std::vector<Vertex>* vertices, std::vector<uint32_t>* indices, int newTexId);
+    class Mesh
+    {
+    public:
+        Mesh();
+        Mesh(VkPhysicalDevice new_physical_device, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool,  std::vector<Vertex>* vertices, std::vector<uint32_t>* indices, int newTexId);
 
-    void SetModel(glm::mat4 newModel);
-    Model GetModel();
+        void SetModel(glm::mat4 newModel);
+        Model GetModel();
 
-    int getTexId();
+        int getTexId();
 
-    int GetVertexCount();
-    VkBuffer GetVertexBuffer();
+        int GetVertexCount();
+        VkBuffer GetVertexBuffer();
 
-    int GetIndexCount();
-    VkBuffer GetIndexBuffer();
+        int GetIndexCount();
+        VkBuffer GetIndexBuffer();
 
-    void DestroyBuffers();
+        void DestroyBuffers();
 
-    ~Mesh();
+        ~Mesh();
 
-private:
-    Model model;
+    private:
+        Model model;
 
-    int texId;
+        int texId;
 
-    int vertexCount;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+        int vertexCount;
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
 
-    int indexCount;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+        int indexCount;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
 
-    VkPhysicalDevice physicalDevice;
-    VkDevice device;
+        VkPhysicalDevice physicalDevice;
+        VkDevice device;
 
-    void CreateVertexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex>* vertices);
-    void CreateIndexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<uint32_t>* indices);
-};
+        void CreateVertexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex>* vertices);
+        void CreateIndexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<uint32_t>* indices);
+    };
+}

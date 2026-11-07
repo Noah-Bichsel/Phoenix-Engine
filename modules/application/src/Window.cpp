@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 
+using namespace Phoenix;
+
 Window::Window(const Desc& _desc) : desc(_desc)
 {
 #if defined(__linux__)

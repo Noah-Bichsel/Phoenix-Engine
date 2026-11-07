@@ -16,6 +16,8 @@
 #include "Utilites.h"
 #include "validationLayers.h"
 
+namespace Phoenix
+{
 class vk_renderer : public Renderer
 {
 public:
@@ -193,4 +195,5 @@ private:
 	// -- Loader Functions
 	stbi_uc* LoadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize);
 };
+}
 

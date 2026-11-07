@@ -11,7 +11,10 @@
 # calls below, and add the .cpp to the source list.
 
 add_library(core INTERFACE
-        include/core/Time.h)
+        include/core/Time.h
+        include/core/Math/Vector.h
+        include/core/Math/Math.h
+        include/core/Math/GlmInterop.h)
 
 add_library(Phoenix::core ALIAS core)
 
